@@ -1,133 +1,49 @@
 import 'package:flutter/material.dart';
-import '../Note.dart';
-import '../database_helper.dart';
 import 'package:intl/intl.dart';
+import 'package:lco_todo/Note.dart';
+import 'package:lco_todo/database_helper.dart';
 
-class NoteDetail extends StatefulWidget {
+class NoteDetails extends StatefulWidget {
   final String appBarTitle;
   final Note note;
 
-  NoteDetail(this.appBarTitle, this.note);
+  const NoteDetails(this.note, this.appBarTitle, {Key? key}) : super(key: key);
 
   @override
-  _NoteDetailState createState() =>
-      _NoteDetailState(this.appBarTitle, this.note);
+  _NoteDetailsState createState() => _NoteDetailsState();
 }
 
-class _NoteDetailState extends State<NoteDetail> {
-  static var _priorities = ['High', 'Low'];
-  DatabaseHelper helper = DatabaseHelper();
-  String appBarTitle;
-  Note note;
-
-  _NoteDetailState(this.appBarTitle, this.note);
+class _NoteDetailsState extends State<NoteDetails> {
+  static final _priorities = ['High', 'Low'];
+  DatabaseHelper helper = DatabaseHelper.databaseHelper;
 
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  void updateTitle() {
-    note.title = titleController.text;
-  }
-
-  void updateDescription() {
-    note.description = descriptionController.text;
-  }
-
-  void _showAlertDialog(String title, String message) {
-    AlertDialog alertDialog = AlertDialog(
-      title: Text(title),
-      content: Text(message),
-    );
-
-    showDialog(context: context, builder: (_) => alertDialog);
-  }
-
-  // convert string to int to save to database
-  void updatePriorityAsInt(String value) {
-    switch (value) {
-      case 'High':
-        note.priority = 1;
-        break;
-      case 'Low':
-        note.priority = 2;
-        break;
-    }
-  }
-
-  // convert int to string to show user
-  String? getPriorityAsString(int value) {
-    String? priority;
-    switch (value) {
-      case 1:
-        priority = _priorities[0];
-        break;
-      case 2:
-        priority = _priorities[1];
-        break;
-    }
-    return priority;
-  }
-
-  moveToLastScreen() {
-    Navigator.pop(context);
-  }
-
-  void _save() async {
-    note.date = DateFormat.yMMMd().format(DateTime.now());
-    int result;
-    if (note.id != null) {
-      result = await helper.updateNote(note);
-    } else {
-      result = await helper.insertNote(note);
-    }
-
-    if (result != 0) {
-      _showAlertDialog('Status', 'Note saved successfully');
-    } else {
-      _showAlertDialog('Status', 'Problem saving Note');
-    }
-    moveToLastScreen();
-  }
-
-  void _delete() async {
-    if (note.id!.isNaN) {
-      _showAlertDialog('Status', 'First add a note');
-      return;
-    }
-
-    int result = await helper.deleteNote(note.id!);
-
-    if (result != 0) {
-      _showAlertDialog('Status', 'Note deleted successfully');
-    } else {
-      _showAlertDialog('Status', 'Problem deleting Note');
-    }
-    moveToLastScreen();
-  }
+  bool shouldPop = true;
 
   @override
   Widget build(BuildContext context) {
     TextStyle? textStyle = Theme.of(context).textTheme.bodyText1;
 
-    titleController.text = note.title;
-    descriptionController.text = note.description;
+    titleController.text = widget.note.title;
+    descriptionController.text = widget.note.description;
 
     return WillPopScope(
       onWillPop: () => moveToLastScreen(),
       child: Scaffold(
-        backgroundColor: Colors.cyanAccent,
+        backgroundColor: Colors.white70,
         appBar: AppBar(
-          title: Text(appBarTitle),
-          backgroundColor: Colors.pink,
+          title: Text(widget.appBarTitle),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back),
             onPressed: () {
               moveToLastScreen();
             },
           ),
         ),
         body: Padding(
-          padding: EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10.0),
           child: Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15.0),
@@ -135,41 +51,50 @@ class _NoteDetailState extends State<NoteDetail> {
             child: ListView(
               children: <Widget>[
                 Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 5.0),
+                  padding: const EdgeInsets.only(top: 15.0, bottom: 5.0),
                   //dropdown menu
-                  child: new ListTile(
+                  child: ListTile(
                     leading: const Icon(Icons.low_priority),
                     title: DropdownButton(
-                        items: _priorities.map((String dropDownStringItem) {
-                          return DropdownMenuItem<String>(
-                            value: dropDownStringItem,
-                            child: Text(dropDownStringItem,
-                                style: TextStyle(
-                                    fontSize: 20.0,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red)),
-                          );
-                        }).toList(),
-                        value: getPriorityAsString(note.priority),
-                        onChanged: (valueSelectedByUser) {
-                          setState(() {
-                            updatePriorityAsInt(valueSelectedByUser.toString());
-                          });
-                        }),
+                      items: _priorities.map((String dropDownStringItem) {
+                        return DropdownMenuItem<String>(
+                          value: dropDownStringItem,
+                          child: Text(
+                            dropDownStringItem,
+                            style: const TextStyle(
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.lightGreen,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      value: getPriorityAsString(widget.note.priority),
+                      onChanged: (valueSelectedByUser) {
+                        setState(() {
+                          updatePriorityAsInt(valueSelectedByUser.toString());
+                        });
+                      },
+                    ),
                   ),
                 ),
                 // Second Element
                 Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 15.0, left: 15.0),
-                  child: TextField(
+                  padding: const EdgeInsets.all(15.0),
+                  child: TextFormField(
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter Title';
+                      }
+                    },
                     controller: titleController,
-                    style: textStyle,
+                    // style: textStyle,
                     onChanged: (value) {
                       updateTitle();
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Title',
-                      labelStyle: textStyle,
+                      // labelStyle: textStyle,
                       icon: Icon(Icons.title),
                     ),
                   ),
@@ -177,14 +102,14 @@ class _NoteDetailState extends State<NoteDetail> {
 
                 // Third Element
                 Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 15.0, left: 15.0),
+                  padding: const EdgeInsets.all(15.0),
                   child: TextField(
                     controller: descriptionController,
-                    style: textStyle,
+                    // style: textStyle,
                     onChanged: (value) {
                       updateDescription();
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Details',
                       icon: Icon(Icons.details),
                     ),
@@ -193,20 +118,20 @@ class _NoteDetailState extends State<NoteDetail> {
 
                 // Fourth Element
                 Padding(
-                  padding: EdgeInsets.all(15.0),
+                  padding: const EdgeInsets.all(15.0),
                   child: Row(
                     children: <Widget>[
                       Expanded(
-                        child: ElevatedButton(
-                          style: ButtonStyle(
-                            padding:
-                                MaterialStateProperty.all(EdgeInsets.all(8.0)),
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.green),
-                          ),
-                          child: Text(
+                        child: MaterialButton(
+                          textColor: Colors.white,
+                          color: Colors.lightGreen,
+                          padding: const EdgeInsets.all(8.0),
+                          child: const Text(
                             'Save',
-                            textScaleFactor: 1.5,
+                            textScaleFactor: 1.2,
+                            style: TextStyle(
+                              letterSpacing: 1.0,
+                            ),
                           ),
                           onPressed: () {
                             setState(() {
@@ -217,19 +142,20 @@ class _NoteDetailState extends State<NoteDetail> {
                         ),
                       ),
                       Container(
-                        width: 5.0,
+                        width: 10.0,
                       ),
                       Expanded(
-                        child: ElevatedButton(
-                          style: ButtonStyle(
-                            padding:
-                                MaterialStateProperty.all(EdgeInsets.all(8.0)),
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.red),
-                          ),
-                          child: Text(
+                        child: MaterialButton(
+                          elevation: 2.0,
+                          textColor: Colors.white,
+                          color: Colors.pink,
+                          padding: const EdgeInsets.all(8.0),
+                          child: const Text(
                             'Delete',
-                            textScaleFactor: 1.5,
+                            textScaleFactor: 1.2,
+                            style: TextStyle(
+                              letterSpacing: 1.0,
+                            ),
                           ),
                           onPressed: () {
                             setState(() {
@@ -247,5 +173,84 @@ class _NoteDetailState extends State<NoteDetail> {
         ),
       ),
     );
+  }
+
+  void updateTitle() {
+    widget.note.title = titleController.text;
+  }
+
+  void updateDescription() {
+    widget.note.description = descriptionController.text;
+  }
+
+  void _save() async {
+    moveToLastScreen();
+    widget.note.date = DateFormat.yMMMd().format(DateTime.now());
+    int result;
+    if (widget.note.id != null) {
+      result = await helper.updateNote(widget.note);
+    } else {
+      result = await helper.insertNote(widget.note);
+    }
+    if (result != 0) {
+      _showAlertDialog('Status', 'Note Saved Succesfully');
+    } else {
+      _showAlertDialog('Status', 'Problem Saving Note');
+    }
+  }
+
+  void _delete() async {
+    moveToLastScreen();
+    if (widget.note.id == null) {
+      _showAlertDialog('Status', 'First Add a note');
+      return;
+    }
+
+    int result = await helper.deleteNote(widget.note.id);
+
+    if (result == 0) {
+      _showAlertDialog('Status', 'Problem in Deleting Note');
+    } else {
+      _showAlertDialog('Status', 'Deleted Successfully');
+    }
+  }
+
+  //conver to int to save into database
+  void updatePriorityAsInt(String value) {
+    switch (value) {
+      case 'High':
+        widget.note.priority = 1;
+        break;
+      case 'Low':
+        widget.note.priority = 2;
+        break;
+    }
+  }
+
+  //convert int to String to show user
+  String? getPriorityAsString(int value) {
+    String? priority;
+    switch (value) {
+      case 1:
+        priority = _priorities[0];
+        break;
+      case 2:
+        priority = _priorities[1];
+        break;
+    }
+    return priority;
+  }
+
+  moveToLastScreen() async {
+    return Navigator.pop(context, true);
+  }
+
+  void _showAlertDialog(String title, String message) {
+    AlertDialog alertDialog = AlertDialog(
+      title: Text(title),
+      content: Text(message),
+    );
+
+    showDialog(context: context, builder: (_) => alertDialog);
   }
 }

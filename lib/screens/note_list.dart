@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../database_helper.dart';
-import '../Note.dart';
-import 'note_details.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:lco_todo/Note.dart';
+import 'package:lco_todo/database_helper.dart';
+import 'package:lco_todo/screens/note_details.dart';
 
 class NoteList extends StatefulWidget {
+  const NoteList({Key? key}) : super(key: key);
+
   @override
   _NoteListState createState() => _NoteListState();
 }
 
 class _NoteListState extends State<NoteList> {
-  DatabaseHelper databaseHelper = DatabaseHelper();
+  DatabaseHelper databaseHelper = DatabaseHelper.databaseHelper;
   List<Note> noteList = [];
   int count = 0;
 
@@ -22,15 +24,15 @@ class _NoteListState extends State<NoteList> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text('LCO ToDo'),
-        backgroundColor: Colors.purple,
+        title: const Text("Todo App"),
+        backgroundColor: Colors.deepPurple,
       ),
       body: getNoteListView(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.purple,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
         onPressed: () {
-          navigateToDetail(Note("", "", 2), "Add Note");
+          navigateToDetail(Note('', '', 2), 'Add Todo');
         },
       ),
     );
@@ -47,24 +49,27 @@ class _NoteListState extends State<NoteList> {
           color: Colors.deepPurple,
           elevation: 4.0,
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundImage:
-                  NetworkImage('https://learncodeonline.in/mascot.png'),
+            leading: const CircleAvatar(
+              backgroundImage: NetworkImage(
+                "https://learncodeonline.in/mascot.png",
+              ),
             ),
-            title: Text(this.noteList[position].title,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 25.0,
-                )),
+            title: Text(
+              noteList[position].title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 25.0,
+              ),
+            ),
             subtitle: Text(
-              this.noteList[position].date,
-              style: TextStyle(color: Colors.white),
+              noteList[position].date,
+              style: const TextStyle(color: Colors.white),
             ),
             trailing: GestureDetector(
-              child: Icon(Icons.open_in_new, color: Colors.white),
+              child: const Icon(Icons.open_in_new, color: Colors.white),
               onTap: () {
-                navigateToDetail(this.noteList[position], "Edit Todo");
+                navigateToDetail(noteList[position], 'Edit Todo');
               },
             ),
           ),
@@ -74,24 +79,27 @@ class _NoteListState extends State<NoteList> {
   }
 
   void navigateToDetail(Note note, String title) async {
-    bool result =
-        await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return NoteDetail(title, note);
-    }));
-
+    bool result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return NoteDetails(note, title);
+        },
+      ),
+    );
     if (result == true) {
       updateListView();
     }
   }
 
   void updateListView() {
-    final Future<Database> dbFuture = databaseHelper.initialzeDatabase();
+    final Future<Database> dbFuture = databaseHelper.initalizeDatabase();
     dbFuture.then((database) {
       Future<List<Note>> noteListFuture = databaseHelper.getNoteList();
       noteListFuture.then((noteList) {
         setState(() {
           this.noteList = noteList;
-          this.count = noteList.length;
+          count = noteList.length;
         });
       });
     });
